@@ -1,0 +1,35 @@
+import json
+import csv
+from pymatgen.ext.matproj import MPRester
+
+API_KEY = 'G6IfUJFjyuazZL737zOaAysWr2tGAK0h'
+mp_ids_file = 'mp-ids-3402.csv'  # Replace with your CSV file containing MP IDs
+
+def get_element_data(mp_id):
+    with MPRester(API_KEY) as m:
+        structure = m.get_structure_by_material_id(mp_id)
+        
+        # Check if struct is empty
+        if not structure:
+            print(f"Structure not found for ID: {mp_id}")
+            return {}
+
+        elements = [site.species_string for site in structure.sites]
+        element_data = {element: 0 for element in set(elements)}
+        return element_data
+
+def create_atom_init_json(mp_ids_file):
+    atom_init_data = {}
+
+    with open(mp_ids_file, 'r') as csvfile:
+        csvreader = csv.reader(csvfile)
+        for row in csvreader:
+            mp_id = row[0]
+            element_data = get_element_data(mp_id)
+            atom_init_data[mp_id] = element_data
+
+    with open('atom_init.json', 'w') as jsonfile:
+        json.dump(atom_init_data, jsonfile, indent=2)
+
+if __name__ == "__main__":
+    create_atom_init_json(mp_ids_file)
