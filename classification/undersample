@@ -1,0 +1,21 @@
+import pandas as pd
+from imblearn.under_sampling import RandomUnderSampler
+
+# Load the dataset
+data = pd.read_csv("id_prop.csv", header=None, names=["ID", "Property"])
+
+# Extract features and target
+X = data["ID"].values.reshape(-1, 1)  # Assuming you want to use ID as a feature
+y = data["Property"].values
+
+# Create an instance of RandomUnderSampler
+rus = RandomUnderSampler(random_state=42)
+
+# Resample the dataset
+X_resampled, y_resampled = rus.fit_resample(X, y)
+
+# Convert the resampled data back to a DataFrame
+resampled_data = pd.DataFrame({"ID": X_resampled.flatten(), "Property": y_resampled})
+
+# Save the undersampled data to a new CSV file
+resampled_data.to_csv("undersampled_id_prop.csv", index=False)
