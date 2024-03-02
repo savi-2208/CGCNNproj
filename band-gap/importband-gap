@@ -1,0 +1,52 @@
+import os
+import csv
+from mp_api.client import MPRester
+import time
+
+API_KEY = 'G6IfUJFjyuazZL737zOaAysWr2tGAK0h'
+IDS = [[], []]
+
+
+def getBandGapByMaterialId(material_id):
+    with MPRester(API_KEY) as m:
+        try:
+            bandstructure = m.get_bandstructure_by_material_id(material_id)
+            if bandstructure:
+                band_gap = bandstructure.get_band_gap()
+                if band_gap:
+                    return band_gap.get('energy')
+        except Exception as e:
+            print(f"Error fetching band gap for ID {material_id}: {e}")
+    return None
+
+
+def getMaterialsInFile(csvfile):
+    with MPRester(API_KEY) as m:
+        for _id in csvfile:
+            _id = _id[0]
+            band_gap = getBandGapByMaterialId(_id)
+
+            if band_gap is None:
+                print(f"No band gap found for ID: {_id}")
+                continue
+
+            # Write to CSV
+            with open('band_gap.csv', 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow([_id, band_gap])
+
+            IDS[0].append(_id)
+            IDS[1].append(band_gap)
+            time.sleep(1)
+
+
+def main():
+    file_names = ['mp-ids-3402.csv']
+    for file in file_names:
+        with open(file, 'r', newline='') as csvfile:
+            csvreader = csv.reader(csvfile)
+            getMaterialsInFile(csvreader)
+
+
+if __name__ == '__main__':
+    main()
