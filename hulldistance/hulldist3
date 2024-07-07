@@ -1,0 +1,53 @@
+from TestStabilityML.mlstabilitytest.stability.utils import read_json
+from TestStabilityML.mlstabilitytest.stability.HullAnalysis import GetHullInputData, AnalyzeHull
+import csv
+import json
+
+# Step 1: Load data from JSON files
+with open('output.json', 'r') as f:
+    ef_data = json.load(f)
+
+# Load chemical space from JSON file
+with open('spaces.json', 'r') as f:
+    chemical_space = json.load(f)
+
+# Step 2: Generate hull data
+get_hull_data = GetHullInputData(ef_data, formation_energy_key='Ef')
+hull_data = get_hull_data.hull_data()
+
+# Step 3: Read compounds from CSV file and calculate hull distances
+compounds = []
+with open('output1.csv', 'r') as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        material_id, formula, energy = row
+        # Skip if energy is not a valid float
+        try:
+            energy = float(energy)
+        except ValueError:
+            print(f"Skipping compound {formula} ({material_id}) due to invalid energy value: {energy}")
+            continue
+        compounds.append((material_id, formula, energy))
+
+hull_distances = []
+for material_id, compound, energy in compounds:
+    space = chemical_space.get(compound, None)
+    if space:
+        try:
+            analyze_hull = AnalyzeHull(hull_data, chemical_space=space)
+            hull_distance = analyze_hull.decomp_energy(compound)
+            if hull_distance<0:
+                hull_distance=0.0
+            
+            hull_distances.append((material_id, compound, energy, hull_distance))
+        except KeyError as e:
+            print(f"Error analyzing compound {compound}: {e}")
+            continue
+    else:
+        print(f"Skipping compound {compound} because no chemical space found.")
+
+# Write hull distances to CSV file
+with open('hulldist.csv', 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(['Material ID', 'Compound', 'Energy', 'Hull Distance'])
+    writer.writerows(hull_distances)
